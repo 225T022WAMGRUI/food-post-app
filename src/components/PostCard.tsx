@@ -36,10 +36,10 @@ export default function PostCard({ post, currentUserId, isOwnPost, onDeleted, on
 
   // Load like and comment counts
   useEffect(() => {
-    isPostLiked(currentUserId, post.id).then(setLiked);
+    isPostLiked(post.id).then(setLiked);
     getPostLikeCount(post.id).then(setLikeCount);
     getPostCommentCount(post.id).then(setCommentCount);
-  }, [currentUserId, post.id]);
+  }, [post.id]);
 
   // Close menu on outside click
   useEffect(() => {
@@ -58,11 +58,11 @@ export default function PostCard({ post, currentUserId, isOwnPost, onDeleted, on
     setLikeLoading(true);
     try {
       if (liked) {
-        await unlikePost(currentUserId, post.id);
+        await unlikePost(post.id);
         setLiked(false);
         setLikeCount((c) => Math.max(0, c - 1));
       } else {
-        await likePost(currentUserId, post.id);
+        await likePost(post.id);
         setLiked(true);
         setLikeCount((c) => c + 1);
       }
@@ -92,7 +92,7 @@ export default function PostCard({ post, currentUserId, isOwnPost, onDeleted, on
     if (!text || commentLoading) return;
     setCommentLoading(true);
     try {
-      const newComment = await addComment(currentUserId, post.id, text);
+      const newComment = await addComment(post.id, text);
       setComments((prev) => [...prev, newComment]);
       setCommentCount((c) => c + 1);
       setCommentText('');

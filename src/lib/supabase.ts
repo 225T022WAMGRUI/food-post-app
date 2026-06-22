@@ -198,29 +198,41 @@ export async function getFollowingCount(userId: string): Promise<number> {
 
 // --- Likes ---
 
-export async function likePost(userId: string, postId: string) {
+export async function likePost(postId: string): Promise<void> {
+  // Get current user from auth
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
   const { error } = await supabase
     .from('likes')
-    .insert({ user_id: userId, post_id: postId });
+    .insert({ user_id: user.id, post_id: postId });
 
   if (error) throw error;
 }
 
-export async function unlikePost(userId: string, postId: string) {
+export async function unlikePost(postId: string): Promise<void> {
+  // Get current user from auth
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
   const { error } = await supabase
     .from('likes')
     .delete()
-    .eq('user_id', userId)
+    .eq('user_id', user.id)
     .eq('post_id', postId);
 
   if (error) throw error;
 }
 
-export async function isPostLiked(userId: string, postId: string): Promise<boolean> {
+export async function isPostLiked(postId: string): Promise<boolean> {
+  // Get current user from auth
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+
   const { data, error } = await supabase
     .from('likes')
     .select('id')
-    .eq('user_id', userId)
+    .eq('user_id', user.id)
     .eq('post_id', postId)
     .maybeSingle();
 
@@ -251,10 +263,14 @@ export async function getComments(postId: string) {
   return data as Comment[];
 }
 
-export async function addComment(userId: string, postId: string, content: string) {
+export async function addComment(postId: string, content: string): Promise<Comment> {
+  // Get current user from auth to ensure correct identity
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
   const { data, error } = await supabase
     .from('comments')
-    .insert({ user_id: userId, post_id: postId, content })
+    .insert({ user_id: user.id, post_id: postId, content })
     .select('*, profiles(username, avatar_url)')
     .single();
 

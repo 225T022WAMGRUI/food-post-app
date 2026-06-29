@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPost, uploadImage, getTags } from '../lib/supabase';
 import { Camera, ImagePlus, X } from 'lucide-react';
+import PostCropModal from './PostCropModal';
 
 interface PostProps {
   userId: string;
@@ -8,7 +9,7 @@ interface PostProps {
 }
 
 export default function Post({ userId, onSuccess }: PostProps) {
-  const [image, setImage] = useState<File | null>(null);
+  const [image, setImage] = useState<File | Blob | null>(null);
   const [preview, setPreview] = useState<string>('');
   const [comment, setComment] = useState('');
   const [location, setLocation] = useState('');
@@ -17,6 +18,7 @@ export default function Post({ userId, onSuccess }: PostProps) {
   const [error, setError] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [showUploadOptions, setShowUploadOptions] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
 
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -31,14 +33,32 @@ export default function Post({ userId, onSuccess }: PostProps) {
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImage(file);
+      // Read image for cropping instead of setting preview
       const reader = new FileReader();
       reader.onload = (event) => {
-        setPreview(event.target?.result as string);
+        setCropImageSrc(event.target?.result as string);
       };
       reader.readAsDataURL(file);
     }
     setShowUploadOptions(false);
+  };
+
+  const handleCropComplete = (croppedBlob: Blob, croppedPreviewUrl: string) => {
+    // Create a File object from the Blob for upload
+    const croppedFile = new File([croppedBlob], 'cropped-image.jpg', { type: 'image/jpeg' });
+    setImage(croppedFile);
+    setPreview(croppedPreviewUrl);
+    setCropImageSrc(null);
+
+    // Clear file inputs so user can reselect same file if needed
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
+    if (galleryInputRef.current) galleryInputRef.current.value = '';
+  };
+
+  const handleCropCancel = () => {
+    setCropImageSrc(null);
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
+    if (galleryInputRef.current) galleryInputRef.current.value = '';
   };
 
   const removeImage = () => {
@@ -276,6 +296,15 @@ export default function Post({ userId, onSuccess }: PostProps) {
           </div>
         </form>
       </div>
+
+      {/* Crop Modal */}
+      {cropImageSrc && (
+        <PostCropModal
+          imageSrc={cropImageSrc}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+        />
+      )}
     </>
   );
 }
